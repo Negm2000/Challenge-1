@@ -3,3 +3,4 @@ models/
 tensorboard/
 submissions/
 .gitignore
+ray_results/
