@@ -1,0 +1,25 @@
+name: an2dl-kaggle
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  
+  # PyTorch & GPU Libraries (for your RTX 3070)
+  - pytorch
+  - torchvision
+  - torchaudio
+  - pytorch-cuda=12.1
+  
+  # Core Data Science & ML
+  - numpy
+  - pandas
+  - scikit-learn
+  
+  # Plotting & Notebook
+  - matplotlib
+  - seaborn
+  - jupyterlab
+  - tensorboard
