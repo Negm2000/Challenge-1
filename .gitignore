@@ -1,6 +1,24 @@
+# Project data & artifacts
 data/
 models/
 tensorboard/
 submissions/
-.gitignore
 ray_results/
+configs/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

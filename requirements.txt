@@ -1,0 +1,20 @@
+# Core deep learning (install a CUDA-matched build from https://pytorch.org if using a GPU)
+torch
+torchvision
+torchaudio
+
+# Data & ML
+numpy
+pandas
+scikit-learn
+statsmodels
+
+# Hyperparameter optimization
+ray[tune]
+optuna
+
+# Visualization & notebooks
+matplotlib
+seaborn
+jupyterlab
+tensorboard
