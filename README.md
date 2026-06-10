@@ -2,7 +2,7 @@
 
 # 🏴‍☠️ Pirate Pain — Time-Series Pain Classification
 
-### Detecting pain levels from 31-joint motion-capture sequences with an attention-augmented BiLSTM ensemble
+### Detecting pain levels from 31-joint motion-capture sequences with an attention-augmented Conv–Recurrent ensemble
 
 [![Python](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
@@ -10,7 +10,9 @@
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**Hold-out weighted F1: `0.948`  ·  Accuracy: `0.96`  ·  Kaggle public score: `0.958`**
+**Best Kaggle F1: `0.960`  ·  Hold-out weighted F1: `~0.95`  ·  Hold-out accuracy: `0.96`**
+
+<sub>🎓 Politecnico di Milano · *Artificial Neural Networks & Deep Learning* — First Challenge · Team <b>Reluminati</b><br/>📄 <a href="report/AN2DL_Challenge_Report.pdf">Read the full challenge report</a></sub>
 
 </div>
 
@@ -22,7 +24,7 @@ A multivariate **time-series classification** project: given a `160`-timestep re
 
 The dataset is small, severely class-imbalanced (~77% `no_pain`, ~8% `high_pain`), and noisy. The solution leans on **careful EDA → principled preprocessing → a hybrid Conv-Recurrent-Attention model → a 15-model cross-validated ensemble** to squeeze a reliable, generalizable signal out of it.
 
-> This was built for the *Artificial Neural Networks & Deep Learning* Kaggle challenge. Every modeling decision below is traced back to a specific finding in the exploratory analysis.
+> Built by **Team Reluminati** (Serkan Basaran, Margarita Makurina, Karim Negm, Muhammet Emre Eren) for the *Artificial Neural Networks & Deep Learning* First Challenge at **Politecnico di Milano**. Every modeling decision below traces back to a specific finding in the exploratory analysis — see the [full report](report/AN2DL_Challenge_Report.pdf).
 
 ---
 
@@ -40,21 +42,22 @@ The dataset is small, severely class-imbalanced (~77% `no_pain`, ~8% `high_pain`
 
 ## 🏆 Results
 
-The final **15-model ensemble** (Repeated Stratified K-Fold) was evaluated on a 20% hold-out set that was *never* seen during hyperparameter search or training.
+Three ensembling strategies were benchmarked. The strongest — soft-voting over only the **best-performing (pruned) folds** — reached **0.960 Kaggle F1**. All hold-out figures come from a 67-sample test set held out *before* any HPO or training.
 
-| Metric | Score |
-|---|:---:|
-| **Weighted F1 (hold-out)** | **0.948** |
-| **Accuracy (hold-out)** | **0.96** |
-| Macro F1 (hold-out) | 0.88 |
-| HPO best validation F1 | 0.923 |
-| Kaggle public leaderboard | 0.958 |
+| Ensemble strategy | Validation F1 (mean ± std) | Kaggle F1 |
+|---|:---:|:---:|
+| 5-Fold average (90% train + hold-out) | 0.937 ± 0.008 | 0.949 |
+| 5-Fold average (100% train) | 0.936 ± 0.021 | 0.957 |
+| **3-Fold pruned average (best folds)** | **0.952 ± 0.010** | **0.960** |
+
+<sub>Source: official challenge report, Table 1.</sub>
 
 <div align="center">
 <img src="assets/results_confusion_matrix.png" width="560" alt="Confusion matrix on the hold-out test set"/>
+<br><sub>Hold-out test set (67 samples) — one ensemble run, weighted F1 ≈ 0.95.</sub>
 </div>
 
-Even on the rare `high_pain` and `low_pain` classes, the ensemble keeps precision high — every `low_pain` sample is recovered, and the residual error is the *safe* direction (rare-class confusion with `no_pain`, never the reverse).
+Even on the rare `high_pain` and `low_pain` classes the ensemble keeps precision high — every `low_pain` sample is recovered, and the residual error falls in the *safe* direction (rare-class confusion with `no_pain`, never the reverse). The honest weak spot, called out in the report, is **`high_pain` recall** on so few positive samples — the next lever would be stronger class-balancing (oversampling / harder focal weighting).
 
 ---
 
@@ -85,6 +88,7 @@ Averaged joint trajectories separate cleanly by pain level over the 160-step win
 
 ### 4. Redundant & dead features → cleaned
 - **`joint_30`** has zero variance (constant `0.5`) → **dropped**.
+- `joint_10` and `joint_11` are ~95% correlated → redundant signal flagged.
 - The prosthetic flags (`n_legs`, `n_hands`, `n_eyes`) are perfectly correlated (ρ = 1.0) → **collapsed into a single `is_pirate` indicator**.
 - **ACF/PACF** decays almost immediately → motivates a **small sliding window (10) and stride (2)** for data augmentation instead of feeding full sequences.
 
@@ -143,7 +147,9 @@ flowchart TD
 | **Speed** | Automatic Mixed Precision (AMP), `torch.compile`, gradient clipping |
 | **HPO** | Ray Tune × Optuna search with the ASHA early-stopping scheduler |
 | **Validation** | `RepeatedStratifiedKFold` (5×3) to smooth out unlucky splits on rare classes |
-| **Inference** | Soft-vote average over the 15 fold models; windows aggregated by mean |
+| **Inference** | Soft-vote average over the fold models; windows aggregated by mean |
+
+> **Note on the project's evolution.** The submitted report describes a Conv1D-**GRU** trained with class-weighted cross-entropy and `CosineAnnealingLR`. The repository's final notebooks push beyond that baseline with a **Focal Loss** objective and an **attention** pooling head — two improvements the report itself flagged as future work — alongside a `OneCycleLR` schedule and a BiLSTM backbone.
 
 ---
 
@@ -155,6 +161,7 @@ flowchart TD
 ├── CH3.ipynb                     # Variant: class-imbalance strategy (WeightedRandomSampler + noise aug)
 ├── CH1.ipynb                     # Variant: final mean-aggregation submission (v17)
 ├── data_analysis_notebook.ipynb  # Full EDA, cleaning rationale, and diagnostics
+├── report/                       # 📄 Formal challenge report (Politecnico di Milano)
 ├── assets/                       # Figures used in this README
 ├── environment.yml               # Conda environment (CUDA 12.1 / PyTorch)
 ├── requirements.txt              # pip alternative
@@ -205,5 +212,5 @@ Then open **`main.ipynb`** and run top-to-bottom. Trained fold models are writte
 ---
 
 <div align="center">
-<sub>Built by <a href="https://github.com/Negm2000">Karim Negm</a> · Licensed under MIT</sub>
+<sub>Team <b>Reluminati</b> — Serkan Basaran · Margarita Makurina · <a href="https://github.com/Negm2000">Karim Negm</a> · Muhammet Emre Eren<br/>Politecnico di Milano · Licensed under MIT</sub>
 </div>
